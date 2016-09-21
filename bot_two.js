@@ -1,177 +1,67 @@
-// if (!process.env.token) {
-//     console.log('Error: Specify token in environment');
-//     process.exit(1);
-// }
+// load environment variables
+var dotenv = require('dotenv');
+dotenv.config();
+
+// recast and botkit dependencies
 const RecastBot = require('recastbot');
+const Botkit = require('./node_modules/botkit/lib/Botkit.js');
 
-const recastai = require('recastai');
-const ai = new RecastBot("e49579f8e4d72ded589bbc373d91e5ae");
+// create the recast bot
+const ai = new RecastBot(process.env.RECAST_TOKEN);
 
-var Botkit = require('./node_modules/botkit/lib/Botkit.js');
-var dotenv = require('dotenv').config();
-// console.log(Botkit)
-// var os = require('os');
-// console.log(os)
-const userData = {};
-userData.firstName = "Fred";
-
+// create the controller from botkit
 var controller = Botkit.slackbot({
     debug: false
 });
 
+// create the bot
 var bot = controller.spawn({
-    token: process.env.token || "xoxb-74039244306-FcTeNsNRefGliAg38q9eWAwD"
+    token: process.env.SLACK_TOKEN
 }).startRTM();
 
-// Needs some work. This is how you respond, i.e. the botkit stuff.
+// Needs some work. This is how you respond, i.e. using the botkit reply method.
 var respondFn = function(message, string) {
    bot.reply(message, string);
 };
 
+// need to get this dialed in. Due to asynchronousness, this won't be returned before the bot replies.
+// const getUserInfo = (bot, message) => {
+//    bot.api.users.info({user: message.user}, (error, response) => {
+//         real_name = response.user.profile.first_name;
+//         console.log('real name', real_name)
+//    });
+// }
+
+
+// duh-dun-da-dahhhhh my whole one hears method. technically the catch all overides all the kinds of messages.
+// need to see what botkit says about handing this
 controller.hears('(.*)', 'direct_message,direct_mention,mention', function(bot, message) {
 
+   // this won't be returned before the bot replies.
+   // const user = getUserInfo(bot, message)
+   // console.log(user, "< user")
+
+   // not DRY and sloppy cause we're going to have do this for every action...
+   bot.api.users.info({user: message.user}, (error, response) => {
+        real_name = response.user.real_name;
+    })
+
+   // send it out to api to process
    aiBot = ai.process(message.text, respondFn);
 
+   // if it hears the intent, basic greeting, this is what it will do.
    aiBot.hears('basic_greeting', (res, respondFn) => {
+      console.log(res, "res")
+      respondFn(message, 'Hello, ' + real_name + '!')
+   })
+   // this is the default method
+   .otherwise((res, userData, respondFn) => {
+      console.log("not otherwise")
+   })
+   // and complete, udder and total failure... moooooooo
+   .fails((err) => {
+      console.log("fail!!!!!", err.message)
+      // respondFn('Sorry, there was an error. Try again later.')
+   });
 
-      // console.log(res, "\n <--- \n res")
-
-         respondFn(message, 'Hello, ' + userData.firstName + '!')
-     })
-     .otherwise((res, userData, respondFn) => {
-         console.log("nothere");
-
-         respondFn('Sorry, I didn\'t get that... ')
-     })
-     .fails((err) => {
-         console.log("wwwwhere")
-
-         respondFn('Sorry, there was an error. Try again later.')
-         console.error(err.message)
-     })
-   console.log(message, "< message")
-
-      // var askMentalHealth = function(response, convo) {
-      //    convo.ask('Awesome! Are you from the mental health world?', [
-      //        {
-      //            pattern: bot.utterances.yes,
-      //            callback: function(response, convo) {
-      //               askSpecific(response, convo);
-      //               convo.next();
-      //            }
-      //        },
-      //       {
-      //           pattern: bot.utterances.no,
-      //           default: true,
-      //           callback: function(response, convo) {
-      //               convo.say('*Phew!*');
-      //               convo.next();
-      //           }
-      //       }
-      //    ]);
-      // }
-      //
-      // // can be reused for both the other ones (tech),
-      // var askSpecific = function(response, convo) {
-      //    convo.ask('Do you want to do something specific?', [
-      //       {
-      //          pattern: bot.utterances.yes,
-      //          callback: function(response, convo) {
-      //             convo.say('Excellent!')
-      //             askWhatIsIt(response,convo);
-      //             convo.next();
-      //          }
-      //       },
-      //       {
-      //          pattern: bot.utterances.no,
-      //          default: true,
-      //          callback: function(response, convo) {
-      //             getContactFirstName(response, convo);
-      //             convo.next();
-      //          }
-      //       }
-      //    ]);
-      // }
-      //
-      // var askWhatIsIt = function(response, convo) {
-      //    convo.ask('What is it?', function(response, convo) {
-      //       convo.say('Neat.');
-      //       getContactFirstName(response, convo);
-      //       convo.next();
-      //    })
-      // }
-      //
-      // var getContactFirstName = function(response, convo) {
-      //    convo.ask("What's your first name?", function(response, convo){
-      //       getContactLastName(response, convo);
-      //       convo.next();
-      //    })
-      // }
-      //
-      // var getContactLastName = function(response, convo) {
-      //    convo.ask('And your last?', function(response, convo) {
-      //       getContactType(response, convo);
-      //       convo.next();
-      //    })
-      // }
-      //
-      // var getContactType = function(message, convo) {
-      //    convo.ask("What's the best way to get a hold of you, phone, text or email?", function(response, convo) {
-      //       getContactDetail(response, convo);
-      //       convo.next();
-      //    })
-      // }
-      //
-      // var getContactDetail = function(message, convo) {
-      //    convo.ask('And that is...',function(response, convo) {
-      //       getContactForte(response, convo);
-      //       convo.next();
-      //    })
-      // }
-      //
-      // var getContactForte = function(message, convo) {
-      //    convo.ask("What's your forte slash what do you do?", function(response, convo) {
-      //       getContactCommitment(response, convo);
-      //       convo.next();
-      //    });
-      // }
-      //
-      // var getContactCommitment = function(response, convo) {
-      //    convo.say("So this next question is pretty forward but really important because of what we're trying to accomplish.")
-      //    convo.ask('What type of hourly commitment can we count on you for?', function(response, convo) {
-      //       getContactAnythingElse(response, convo);
-      //       convo.next();
-      //    });
-      // }
-      //
-      // var getContactAnythingElse = function(response, convo) {
-      //    convo.say('Okay, I think I got it.');
-      //    convo.ask('Is there anything else you want us to know about you?', function(response, convo) {
-      //       sayThanks(response, convo);
-      //       convo.next();
-      //    })
-      // }
-      //
-      // var sayThanks = function(response, convo) {
-      //    convo.say('Hey, thanks so much for helping out. We really appreciate your help! If you want to get a hold of us, you can reach out at....');
-      //    convo.say("Thanks again and we'll be in touch!!");
-      //    // console.log(bot);
-      //    // console.log(convo.text)
-      //
-      //    convo.on('end',function(convo) {
-      //      if (convo.status=='completed') {
-      //        // do something useful with the users responses
-      //        var res = convo.extractResponses();
-      //        // reference a specific response by key
-      //        var value  = convo.extractResponse('key');
-      //        console.log(res, "<<<<<<<<<<<res");
-      //        console.log(value, "<<<<<<<<<value");
-      //      }
-      //    //   else { something happened that caused the conversation to stop prematurely }
-      //
-      //    });
-      // }
-      //
-
-   //   bot.startConversation(message, askMentalHealth)
 });
